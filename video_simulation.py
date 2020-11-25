@@ -18,7 +18,10 @@ from liftoneleg import LiftOneLeg, get_angle
 from metric import test_per_frame
 
 #Global varaible
-LABEL = np.load('./result/test.npy')
+# LABEL = np.load('./result/test.npy')
+LABEL = np.load('./result/groundtruth.npy')
+
+
 
 def run_demo(net, image_provider, height_size=256, cpu=False, track_ids=False):
 
@@ -39,7 +42,9 @@ def run_demo(net, image_provider, height_size=256, cpu=False, track_ids=False):
     count = 0
     start_frame, end_frame = 1000000, -1
     completed_half = False
-    
+    total_len_frame = 0
+    one_cycle_kpts =[]
+
     for i, img in enumerate(image_provider):
         
         img = cv2.resize(img, (600,600))
@@ -68,12 +73,15 @@ def run_demo(net, image_provider, height_size=256, cpu=False, track_ids=False):
             ####
             pose = Pose(pose_keypoints, pose_entries[n][18])
             current_poses.append(pose)
-            pose.draw(img)
+            pose.draw(img) 
 
         
+        #Select joints
+        pose_keypoints = np.concatenate((pose_keypoints[2],pose_keypoints[5],pose_keypoints[8],
+                                        pose_keypoints[10],pose_keypoints[11],pose_keypoints[13])).reshape(-1, 2)
         #Analyze posture
         previous_pose_kpts.append(pose_keypoints)
-        liftoneleg = LiftOneLeg(previous_pose_kpts, i)
+        liftoneleg = LiftOneLeg(previous_pose_kpts)#Wrong
         angle, leg_status = liftoneleg.check_leg_up_down() 
         
         #Update status and count
@@ -81,7 +89,14 @@ def run_demo(net, image_provider, height_size=256, cpu=False, track_ids=False):
                     liftoneleg.count_repetition(angle, leg_status, completed_half,  count, i, start_frame, end_frame)
         if (count_update == count +1):
             print("count : %d" %count)
-            result = test_per_frame(previous_pose_kpts[start_frame:], LABEL)
+
+            one_cycle_kpts.append(previous_pose_kpts[start_frame:])
+            
+            result = test_per_frame(previous_pose_kpts[start_frame-total_len_frame:end_frame-total_len_frame], LABEL)
+            total_len_frame += len(previous_pose_kpts)
+            previous_pose_kpts = []
+            
+            
 
         count, start_frame, end_frame = count_update, start_frame_update, end_frame_update
 
@@ -98,7 +113,7 @@ def run_demo(net, image_provider, height_size=256, cpu=False, track_ids=False):
                     (10,550), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0),2)
         cv2.putText(img, "Lsho-Lhip :%3.2f, Lhip-Lank :%3.2f" %(result[1], result[2]),
                     (10,570), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0),2)
-        cv2.putText(img, "Rhip-RKnee :%3.2f, RKnee-Rank :%3.2f" %(result[3], result[4]),
+        cv2.putText(img, "Rhip-Rank :%3.2f" %(result[3]),
                     (10,590), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0),2)
         cv2.putText(img, '3 align :{}'.format(liftoneleg.check_if_3points_are_aligned()),
                     (10,60), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255),2)
@@ -111,8 +126,10 @@ def run_demo(net, image_provider, height_size=256, cpu=False, track_ids=False):
         key = cv2.waitKey(33)
         if key == 27:  # esc
             return
-            
+
     return graph_x, graph_y
+    # return one_cycle_kpts
+
 
     
 if __name__ == '__main__':
@@ -121,9 +138,9 @@ if __name__ == '__main__':
     checkpoint_path = './checkpoint_iter_370000.pth'
     # video_path = '../openpose/rehab_data/ligt_oneleg_correct.mp4'
     # video_path = '/home/eunbyeol/openpose/rehab_data/lift_oneleg_wrong1.mp4'
-    video_path = '/home/eunbyeol/openpose/rehab_data/liftoneleg.mp4'
+    # video_path = '/home/eunbyeol/openpose/rehab_data/liftoneleg.mp4'
 
-    # video_path = '/home/eunbyeol/openpose/rehab_data/wrong_1111.mp4'
+    video_path = '/home/eunbyeol/openpose/rehab_data/wrong_1111.mp4'
     # video_path = '/home/eunbyeol/openpose/rehab_data/correct_1111.mp4'
     # video_path = '/home/eunbyeol/openpose/rehab_data/3set_video.mp4'
 
@@ -134,10 +151,12 @@ if __name__ == '__main__':
     
     correct_video_frame_provider = VideoReader(video_path)
     graph_x, graph_y =run_demo(net, correct_video_frame_provider)
+    # one_cycle_kpts = run_demo(net, correct_video_frame_provider)
     # np.save('./result/groundtruth.npy', one_cycle_kpts[1])
 
     
-    plt.plot(graph_x, graph_y, color="red",  marker=".",)
-    plt.xlabel('frame #')
-    plt.ylabel('angle')
-    plt.show()
+    # plt.plot(graph_x, graph_y, color="red",  marker=".",)
+    # plt.xlabel('frame #')
+    # plt.ylabel('angle')
+    # plt.show()
+

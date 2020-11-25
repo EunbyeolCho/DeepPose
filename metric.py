@@ -5,18 +5,24 @@ import math
 from numpy import dot
 from numpy.linalg import norm
 
-BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
-                "LShoulder": 5, "LElbow": 6, "LWrist": 7, "RHip": 8, "RKnee": 9,
-                "RAnkle": 10, "LHip": 11, "LKnee": 12, "LAnkle": 13, "REye": 14,
-                "LEye": 15, "REar" :16, "Lear" :17 }
+# BODY_PARTS = { "Nose": 0, "Neck": 1, "RShoulder": 2, "RElbow": 3, "RWrist": 4,
+#                 "LShoulder": 5, "LElbow": 6, "LWrist": 7, "RHip": 8, "RKnee": 9,
+#                 "RAnkle": 10, "LHip": 11, "LKnee": 12, "LAnkle": 13, "REye": 14,
+#                 "LEye": 15, "REar" :16, "Lear" :17 }
 
-POSE_PAIRS = [ ["Nose", "Neck"], ["Neck", "RShoulder"], ["RShoulder", "RElbow"],
-                ["RElbow", "RWrist"], ["Neck", "LShoulder"], ["LShoulder", "LElbow"],
-                ["LElbow", "LWrist"], ["RShoulder", "RHip"], ["RHip", "RKnee"],
-                ["RKnee", "RAnkle"], ["LShoulder", "LHip"], ["LHip", "LKnee"], ["LKnee", "LAnkle"] ]
+BODY_PARTS = { "RShoulder": 0, "LShoulder": 1, "RHip": 2, "RAnkle": 3, "LHip": 4,
+                "LAnkle": 5}
 
-POSE_PAIRS = [ ["RShoulder", "LShoulder"],["LShoulder", "LHip"], ["LHip", "LAnkle"],
-                ["RHip", "RKnee"], ["RKnee", "RAnkle"]]
+# POSE_PAIRS = [ ["Nose", "Neck"], ["Neck", "RShoulder"], ["RShoulder", "RElbow"],
+#                 ["RElbow", "RWrist"], ["Neck", "LShoulder"], ["LShoulder", "LElbow"],
+#                 ["LElbow", "LWrist"], ["RShoulder", "RHip"], ["RHip", "RKnee"],
+#                 ["RKnee", "RAnkle"], ["LShoulder", "LHip"], ["LHip", "LKnee"], ["LKnee", "LAnkle"] ]
+
+# POSE_PAIRS = [ ["RShoulder", "LShoulder"],["LShoulder", "LHip"], ["LHip", "LAnkle"],
+                # ["RHip", "RKnee"], ["RKnee", "RAnkle"]]
+
+POSE_PAIRS = [ ["RShoulder", "LShoulder"],["LShoulder", "LHip"], ["LHip", "LAnkle"],["RHip", "RAnkle"]]
+
 
 
 
@@ -38,10 +44,10 @@ def similarity_score(input_points, gt_points):
 
     # csim_sum = 0    
     csim_sum = np.zeros([len(POSE_PAIRS), ])
-    xaxis = 0
+    
     for i, pair in enumerate(POSE_PAIRS):
         # print(pair, end=" : ")
-        xaxis += 0.5
+        
         partA = pair[0]             # Head
         partA = BODY_PARTS[partA]   # 0
         partB = pair[1]             # Neck
@@ -53,9 +59,10 @@ def similarity_score(input_points, gt_points):
         
         csim = abs(GetCosineSimilarity(a, b))
         # degree = math.degrees(math.acos(csim))
+        # print(csim, degree)
         
         scaled_csim = (2 * csim) -1
-        scaled_csim = (10 * csim) -9
+        # scaled_csim = (10 * csim) -9
         
         csim_sum[i] += scaled_csim
     
@@ -69,6 +76,9 @@ def test_per_frame(data, gt, fps=10):
     data = np.array(data)
     gt_num_frame, num_kpt, xy = gt.shape
     num_frame,  _, _ = data.shape
+
+    # print(gt.shape, data.shape)
+    # exit()
     ratio  = num_frame / gt_num_frame
         
     idx = [int(i*ratio) for i in range(gt_num_frame)]
